@@ -1,5 +1,4 @@
 # 🌤️ 天气 Agent
-
 > 基于 LangChain 的智能天气预报助手，支持自然语言查询，说话喜欢用双关语
 
 ## ✨ 功能特性
@@ -19,20 +18,25 @@
 ## 🚀 快速开始
 
 ### 1. 安装依赖
-
 ```bash
 pip install langchain langchain-core langgraph requests
+```
 
-###2. 配置 API Key
+### 2. 配置 API Key
 在代码中设置和风天气 API 凭据：
-
+```python
 # 和风天气 API 配置
 API_KEY = "你的 API Key"  # 从和风天气控制台获取
 API_HOST = "你的服务器地址"  # 如 n76hexkpa5.re.qweatherapi.com
-3. 运行示例
+```
+
+### 3. 运行示例
+```python
 from langchain.agents import create_agent
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
+# 需自行实现 llm 初始化（例如从 init_llm.py 导入）
+from init_llm import llm  
 
 # 定义天气查询工具
 @tool
@@ -73,51 +77,74 @@ response = agent.invoke(
     {"messages": [{"role": "user", "content": "长沙今天怎么样啊？"}]},
     config={"configurable": {"thread_id": "1"}}
 )
-📋 使用示例
-示例 1：查询单个城市
-输入：
+```
 
+---
+
+## 📋 使用示例
+
+### 示例 1：查询单个城市
+**输入**：
+```
 长沙今天怎么样啊？
-输出：
-
+```
+**输出**：
+```
 在长沙，阳光总是"湘"伴您左右！☀️
 长沙 今天多云，气温 28°C，体感 30°C，东南风 3 级，湿度 65%，气压 1013hPa，能见度 16km～
-示例 2：多轮对话
+```
+
+### 示例 2：多轮对话
+```python
 # 第一轮
+config = {"configurable": {"thread_id": "1"}}
 response = agent.invoke(
     {"messages": [{"role": "user", "content": "长沙今天怎么样啊？"}]},
-    config=config,
-    context=Context(user_id="1")
+    config=config
 )
 
 # 第二轮（保持同一个 thread_id）
 response = agent.invoke(
     {"messages": [{"role": "user", "content": "谢谢!"}]},
-    config=config,
-    context=Context(user_id="1")
+    config=config
 )
-输出：
-
+```
+**输出**：
+```
 第一轮：在长沙，阳光总是"湘"伴您左右！☀️...
 第二轮：不客气！在长沙，阳光总是"湘"伴您左右～如果天气有变，记得带伞哦！☂️
-示例 3：查询不同城市
-输入：
+```
 
+### 示例 3：查询不同城市
+**输入**：
+```
 用户：北京天气如何？
 用户：那上海呢？
 用户：广州明天会下雨吗？
-输出：
-
+```
+**输出**：
+```
 AI: 在北京，阳光总是"京"彩不断！☀️ 北京 今天晴，气温 22°C...
 AI: 在上海，阳光总是"沪"你周全！☀️ 上海 今天多云，气温 25°C...
 AI: 在广州，阳光总是"广"阔无云！☀️ 广州 今天小雨，气温 27°C...
-🏗️ 项目结构
+```
+
+---
+
+## 🏗️ 项目结构
+```
 langchain 练习/
 ├── 02agent 天气.py          # 主程序
 ├── init_llm.py              # LLM 初始化配置
 └── README.md                # 项目文档
-⚙️ 核心组件详解
-1. 系统提示词
+```
+
+---
+
+## ⚙️ 核心组件详解
+
+### 1. 系统提示词
+```python
 SYSTEM_PROMPT = """
 你是一位天气预报专家，说话总是喜欢用双关语。 
 您可以访问两个工具： 
@@ -125,14 +152,17 @@ SYSTEM_PROMPT = """
 - get_user_location：使用它来获取用户的城市地址 
 如果用户向你询问天气，确保你知道它的位置。
 """
-2. 天气查询工具（接入和风天气 API）
+```
+
+### 2. 天气查询工具（接入和风天气 API）
+```python
 @tool
 def get_weather_for_location(city: str) -> str:
     """获取给定城市的天气."""
     import requests
     
-    API_KEY = ""
-    API_HOST = ""
+    API_KEY = ""  # 替换为你的 API Key
+    API_HOST = ""  # 替换为你的服务器地址
     
     try:
         # 步骤 1: 根据城市名获取城市 ID
@@ -179,19 +209,10 @@ def get_weather_for_location(city: str) -> str:
         return f"抱歉，天气查询超时了～"
     except Exception:
         return f"抱歉，天气查询出错了～"
-API 调用流程：
+```
 
-1. 调用 GeoAPI 获取城市 ID
-   GET /geo/v2/city/lookup?location=长沙&key=YOUR_KEY
-   → 返回 city_id = "101250101"
-
-2. 用城市 ID 查询天气
-   GET /v7/weather/now?location=101250101&key=YOUR_KEY
-   → 返回实时天气数据
-
-3. 格式化输出
-   → "长沙 今天多云，气温 28°C，体感 30°C..."
-3. 城市提取工具
+### 3. 城市提取工具
+```python
 @tool
 def get_user_location(**kwargs) -> str:
     """从用户输入中提取城市名。从对话历史中查找用户提到的城市。"""
@@ -208,26 +229,44 @@ def get_user_location(**kwargs) -> str:
                 return city
     
     return "北京"
-4. 上下文管理
+```
+
+### 4. 上下文管理
+```python
+from dataclasses import dataclass
+
 @dataclass
 class Context:
     """自定义运行时上下文模式."""
     user_id: str
-5. 结构化输出
+```
+
+### 5. 结构化输出
+```python
+from dataclasses import dataclass
+
 @dataclass
 class ResponseFormat:
     """agent 的响应模式."""
     punny_response: str              # 双关语回复
     weather_conditions: str | None = None  # 天气详情（可选）
-6. 对话记忆
-checkpointer = InMemorySaver()
+```
 
+### 6. 对话记忆
+```python
+checkpointer = InMemorySaver()
 config = {"configurable": {"thread_id": "1"}}
 
 # 相同 thread_id 的调用共享对话历史
 response = agent.invoke(..., config=config)
-📊 API 响应示例
-城市搜索响应
+```
+
+---
+
+## 📊 API 响应示例
+
+### 城市搜索响应
+```json
 {
   "code": "200",
   "location": [
@@ -239,7 +278,10 @@ response = agent.invoke(..., config=config)
     }
   ]
 }
-天气查询响应
+```
+
+### 天气查询响应
+```json
 {
   "code": "200",
   "updateTime": "2026-03-12T19:00+08:00",
@@ -261,43 +303,72 @@ response = agent.invoke(..., config=config)
     "dew": "21"
   }
 }
-格式化输出
+```
+
+### 格式化输出
+```
 长沙 今天多云，气温 28°C，体感 30°C，东南风 3 级，湿度 65%，气压 1013hPa，能见度 16km～
-🧪 测试用例
-测试场景	输入	预期行为
-正常查询	"长沙今天怎么样啊？"	返回长沙真实天气
-多轮对话	"那上海呢？"	结合上下文返回上海天气
-无城市	"今天天气怎么样？"	追问用户哪个城市
-无效城市	"XXX 市天气"	提示找不到城市
-网络超时	-	返回友好错误提示
-⚠️ 注意事项
-问题	解决方案
-API Key 无效	检查和风天气控制台，确认 Key 有效
-调用超限	免费版每天 1000 次，升级或等待次日
-网络超时	添加 timeout 参数和重试机制
-城市名不匹配	扩展城市列表或使用模糊匹配
-API_HOST 错误	使用控制台中分配的服务器地址
-🚀 扩展建议
-1. 添加更多城市
+```
+
+---
+
+## 🧪 测试用例
+
+| 测试场景 | 输入 | 预期行为 |
+|----------|------|----------|
+| 正常查询 | "长沙今天怎么样啊？" | 返回长沙真实天气 |
+| 多轮对话 | "那上海呢？" | 结合上下文返回上海天气 |
+| 无城市 | "今天天气怎么样？" | 追问用户哪个城市 |
+| 无效城市 | "XXX 市天气" | 提示找不到城市 |
+| 网络超时 | - | 返回友好错误提示 |
+
+---
+
+## ⚠️ 注意事项
+
+| 问题 | 解决方案 |
+|------|----------|
+| API Key 无效 | 检查和风天气控制台，确认 Key 有效 |
+| 调用超限 | 免费版每天 1000 次，升级或等待次日 |
+| 网络超时 | 添加 timeout 参数和重试机制 |
+| 城市名不匹配 | 扩展城市列表或使用模糊匹配 |
+| API_HOST 错误 | 使用控制台中分配的服务器地址 |
+
+---
+
+## 🚀 扩展建议
+
+### 1. 添加更多城市
+```python
 cities = [
     "长沙", "北京", "上海", "广州", "深圳", "杭州", "成都", "武汉", "南京", "重庆",
     "天津", "西安", "苏州", "青岛", "郑州", "沈阳", "大连", "厦门", "昆明", "哈尔滨"
 ]
-2. 添加天气预报
+```
+
+### 2. 添加天气预报
+```python
 # 使用 /v7/weather/3d 接口获取 3 天预报
 weather_response = requests.get(
     f"https://{API_HOST}/v7/weather/3d",
     params={"location": city_id, "key": API_KEY}
 )
-3. 添加空气质量
+```
+
+### 3. 添加空气质量
+```python
 # 使用 /v7/air/now 接口获取 AQI 数据
 air_response = requests.get(
     f"https://{API_HOST}/v7/air/now",
     params={"location": city_id, "key": API_KEY}
 )
-4. 添加生活指数
+```
+
+### 4. 添加生活指数
+```python
 # 使用 /v7/indices/1d 接口获取生活指数
 indices_response = requests.get(
     f"https://{API_HOST}/v7/indices/1d",
     params={"location": city_id, "key": API_KEY, "type": "1,2,3,5,8"}
 )
+```
